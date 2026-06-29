@@ -11,86 +11,133 @@
 ২. ইনস্টল হওয়ার পর ব্রাউজারের ওপরের ডানদিকের Tampermonkey আইকনে ক্লিক করে "Create a new script..." অপশনে যান।
 ৩. সেখানে আগে থেকে লেখা সব কোড মুছে দিয়ে নিচের কোডটি পুরোটা কপি করে পেস্ট করুন:
 // ==UserScript==
-// @name         Visa Auto-Paste Persistent Mode
+// @name         Universal Auto Paste Mode (Small & Draggable)
 // @namespace    http://tampermonkey.net/
-// @version      1.2
-// @description  Persistently auto-paste text on click across page refreshes
+// @version      3.0
+// @description  Smaller, draggable auto paste button on any website
 // @author       Gemini
-// @match        *://*.indianvisaonline.gov.in/*
+// @match        *://*/*
 // @grant        none
-// ==UserScript==
+// ==/UserScript==
 
 (function() {
-    'use strict';
+'use strict';
+var btn = document.createElement('button');
+btn.id = 'auto-paste-toggle-btn';
+btn.style.position = 'fixed';
 
-    // ১. স্ক্রিনে একটি ফ্লোটিং বাটন তৈরি করা
-    var btn = document.createElement('button');
-    btn.id = 'auto-paste-toggle-btn';
-    btn.style.position = 'fixed';
-    btn.style.top = '20px';
-    btn.style.right = '20px';
-    btn.style.zIndex = '100000';
-    btn.style.padding = '8px 15px';
-    btn.style.borderRadius = '20px';
-    btn.style.border = 'none';
-    btn.style.color = '#fff';
-    btn.style.fontWeight = 'bold';
-    btn.style.cursor = 'pointer';
-    btn.style.boxShadow = '0 4px 6px rgba(0,0,0,0.2)';
-    btn.style.fontFamily = 'Arial, sans-serif';
-    btn.style.fontSize = '13px';
+// বুকমার্কলেট: ছোট সাইজ
+btn.style.top = '10px';
+btn.style.right = '10px';
+btn.style.zIndex = '1000000'; // অনেক বেশি, যেন সবকিছুর ওপর থাকে
+btn.style.padding = '5px 10px'; // ছোট প্যাডিং
+btn.style.borderRadius = '15px'; // ছোট রেডিয়াস
+btn.style.border = 'none';
+btn.style.color = '#fff';
+btn.style.fontWeight = 'bold';
+btn.style.cursor = 'grab'; // ড্র্যাগ করার জন্য হ্যান্ড আইকন
+btn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+btn.style.fontFamily = 'Arial, sans-serif';
+btn.style.fontSize = '11px'; // ছোট ফন্ট সাইজ
+btn.style.opacity = '0.7'; // একটু স্বচ্ছ, যেন পেজের লেখা দেখা যায়
 
-    // ২. আগের সেভ করা স্টেট (On/Off) চেক করা
-    var isEnabled = localStorage.getItem('autoPasteEnabled') === 'true';
+var isEnabled = localStorage.getItem('autoPasteEnabled') === 'true';
 
-    // ৩. বাটনের কালার ও টেক্সট আপডেট করার ফাংশন
-    function updateUI() {
-        if (isEnabled) {
-            btn.innerText = 'Auto-Paste: ON';
-            btn.style.backgroundColor = '#28a745'; // সবুজ কালার
-        } else {
-            btn.innerText = 'Auto-Paste: OFF';
-            btn.style.backgroundColor = '#dc3545'; // লাল কালার
-        }
-    }
+function updateUI() {
+if (isEnabled) {
+btn.innerText = 'Paste: ON';
+btn.style.backgroundColor = '#28a745'; // সবুজ
+} else {
+btn.innerText = 'Paste: OFF';
+btn.style.backgroundColor = '#dc3545'; // লাল
+}
+}
 
-    updateUI();
-    document.body.appendChild(btn);
+updateUI();
+document.body.appendChild(btn);
 
-    // ৪. অটো-পেস্টিং লজিক
-    var autoPasteHandler = async function(e) {
-        if (!isEnabled) return;
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-            try {
-                const text = await navigator.clipboard.readText();
-                e.target.value = text;
-                e.target.dispatchEvent(new Event('input', { bubbles: true }));
-                e.target.dispatchEvent(new Event('change', { bubbles: true }));
-            } catch (err) {
-                console.error('Clipboard error:', err);
-            }
-        }
-    };
+// ড্র্যাগেবল করার জন্য ফাংশন
+var isDragging = false;
+var offsetX, offsetY;
 
-    // ক্লিক ইভেন্ট লিসেনার (ক্যাপচারিং মোড)
-    document.addEventListener('click', autoPasteHandler, true);
+btn.addEventListener('mousedown', function(e) {
+isDragging = true;
+offsetX = e.clientX - btn.getBoundingClientRect().left;
+offsetY = e.clientY - btn.getBoundingClientRect().top;
+btn.style.cursor = 'grabbing';
+btn.style.opacity = '1'; // ড্র্যাগ করার সময় পুরোপুরি দেখা যাবে
+btn.style.transition = 'none'; // ড্র্যাগিং স্মুথ করার জন্য ট্রানজিশন বন্ধ
+});
 
-    // ৫. বাটনে ক্লিক করলে অন/অফ টগল হওয়া
-    btn.addEventListener('click', function(e) {
-        e.stopPropagation(); // বাটনে ক্লিক করলে যেন পেস্ট না হয়
-        isEnabled = !isEnabled;
-        localStorage.setItem('autoPasteEnabled', isEnabled); // ব্রাউজার মেমোরিতে সেভ রাখা
-        updateUI();
-    });
+document.addEventListener('mousemove', function(e) {
+if (isDragging) {
+btn.style.left = (e.clientX - offsetX) + 'px';
+btn.style.top = (e.clientY - offsetY) + 'px';
+btn.style.right = 'auto'; // আগের রাইট পজিশন বাতিল
+}
+});
+
+document.addEventListener('mouseup', function() {
+if (isDragging) {
+isDragging = false;
+btn.style.cursor = 'grab';
+btn.style.opacity = '0.7'; // ড্র্যাগ শেষ হলে আবার স্বচ্ছ হয়ে যাবে
+btn.style.transition = 'opacity 0.3s'; // ট্রানজিশন আবার চালু
+
+// নতুন পজিশন সেভ করে রাখা যেন রিফ্রেশ দিলেও সেখানেই থাকে
+localStorage.setItem('autoPasteBtnLeft', btn.style.left);
+localStorage.setItem('autoPasteBtnTop', btn.style.top);
+}
+});
+
+// পেজ লোড হলে আগের সেভ করা পজিশন সেট করা
+window.addEventListener('load', function() {
+var savedLeft = localStorage.getItem('autoPasteBtnLeft');
+var savedTop = localStorage.getItem('autoPasteBtnTop');
+if (savedLeft && savedTop) {
+btn.style.left = savedLeft;
+btn.style.top = savedTop;
+btn.style.right = 'auto';
+}
+});
+
+// অটো-পেস্টিং লজিক
+var autoPasteHandler = async function(e) {
+if (!isEnabled || isDragging) return; // ড্র্যাগ করার সময় যেন পেস্ট না হয়
+if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+try {
+// Clipboard API শুধুমাত্র সুরক্ষিত কন্টেনস্টে কাজ করে (HTTPS)
+const text = await navigator.clipboard.readText();
+if (text) {
+e.target.value = text;
+e.target.dispatchEvent(new Event('input', { bubbles: true }));
+e.target.dispatchEvent(new Event('change', { bubbles: true }));
+}
+} catch (err) {
+// Clipboard API ব্যবহারের জন্য প্রথমবার অনুমতি চাইতে পারে
+console.error('Failed to read from clipboard:', err);
+// বিকল্প পদ্ধতি
+// document.execCommand('paste'); // এটি সবসময় সব ব্রাউজারে কাজ নাও করতে পারে
+}
+}
+};
+
+// ক্লিক ইভেন্ট লিসেনার (ক্যাপচারিং মোড, যেন ইনপুট ফিল্ডের ওপরের লেয়ার হিসেবে কাজ করে)
+document.addEventListener('click', autoPasteHandler, true);
+
+// বাটনে ক্লিক করলে অন/অফ টগল হওয়া
+btn.addEventListener('click', function(e) {
+if (isDragging) return; // ড্র্যাগ করার সময় ক্লিক ইভেন্ট বন্ধ
+e.stopPropagation(); // বাটনে ক্লিক করলে যেন পেস্ট না হয়
+isEnabled = !isEnabled;
+localStorage.setItem('autoPasteEnabled', isEnabled);
+updateUI();
+});
 })();
-
 ৪. কোড পেস্ট করার পর কীবোর্ডের Ctrl + S চেপে অথবা Tampermonkey-এর File -> Save মেনুতে গিয়ে এটি সেভ করুন।
 
 এটি এখন যেভাবে কাজ করবে:
-স্থায়ী সবুজ/লাল বাটন: এখন থেকে আপনি যখনই ইন্ডিয়ান ভিসার ওয়েবসাইটে (indianvisaonline.gov.in) ঢুকবেন, স্ক্রিনের ডানদিকের ওপরের কোণায় একটি বাটন দেখতে পাবেন।
-
+কোডটি আপনার বুকমার্কলেটে ব্যবহার করতে পারবেন। ড্র্যাগ করার জন্য হ্যান্ড আইকন দেওয়া হয়েছে এবং পেজের ওপর একটি স্বচ্ছ আস্তরণ তৈরি করা হয়েছে যেন এটি পেজের লেখার ওপরে থাকে এবং তা সহজে সরিয়ে রাখা যায়। বাটনটির নতুন পজিশন ব্রাউজারে সেভ করে রাখা হয়, যেন পেজ রিফ্রেশ দিলেও এটি আপনার সরিয়ে রাখা পজিশনেই থাকে।
 রিফ্রেশ করলেও মেমোরি থাকবে: আপনি যদি বাটনটিতে ক্লিক করে Auto-Paste: ON (সবুজ) করে দেন, তবে পেজ রিফ্রেশ করলে, পরের পেজে গেলে কিংবা কম্পিউটার বন্ধ করে পরদিন আসলেও এটি সবুজ (ON) অবস্থাতেই থাকবে। ব্রাউজার মনে রাখবে যে আপনি এটি অন করে রেখেছিলেন।
 
 বন্ধ করার নিয়ম: আপনার কাজ পুরোপুরি শেষ হয়ে গেলে জাস্ট ওই বাটনে আরেকবার ক্লিক করবেন, সেটি Auto-Paste: OFF (লাল) হয়ে যাবে এবং অটো-পেস্ট বন্ধ হয়ে যাবে।
-
-(নোট: কোডের ৪ নম্বর লাইনে @match শুধু ইন্ডিয়ান ভিসা ওয়েবসাইটের জন্য সেট করা আছে। আপনি যদি চান এটি পৃথিবীর সব ওয়েবসাইটে কাজ করুক, তবে ওই লাইনটি পরিবর্তন করে // @match *://*/* লিখে সেভ করলেই হবে।)

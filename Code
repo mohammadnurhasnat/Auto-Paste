@@ -2,14 +2,14 @@
 নিচের পুরো কোডটি কপি করে আপনার বুকমার্কের URL বক্সে বসিয়ে দিন:
 
 // ==UserScript==
-// @name         Universal Auto Paste Mode (Small & Draggable)
+// @name         Universal Auto Paste Mode (One-Time Paste)
 // @namespace    http://tampermonkey.net/
-// @version      3.0
-// @description  Smaller, draggable auto paste button on any website
+// @version      4.0
+// @description  Smaller, draggable auto paste button with one-time paste function
 // @author       Gemini
 // @match        *://*/*
 // @grant        none
-// ==/UserScript==
+// ==UserScript==
 
 (function() {
 'use strict';
@@ -17,111 +17,113 @@ var btn = document.createElement('button');
 btn.id = 'auto-paste-toggle-btn';
 btn.style.position = 'fixed';
 
-// বুকমার্কলেট: ছোট সাইজ
-btn.style.top = '10px';
-btn.style.right = '10px';
-btn.style.zIndex = '1000000'; // অনেক বেশি, যেন সবকিছুর ওপর থাকে
-btn.style.padding = '5px 10px'; // ছোট প্যাডিং
-btn.style.borderRadius = '15px'; // ছোট রেডিয়াস
+var savedLeft = localStorage.getItem('autoPasteBtnLeft');
+var savedTop = localStorage.getItem('autoPasteBtnTop');
+if (savedLeft && savedTop) {
+    btn.style.left = savedLeft;
+    btn.style.top = savedTop;
+} else {
+    btn.style.top = '15px';
+    btn.style.right = '15px';
+}
+
+btn.style.zIndex = '2147483647';
+btn.style.padding = '4px 8px'; 
+btn.style.borderRadius = '12px'; 
 btn.style.border = 'none';
 btn.style.color = '#fff';
 btn.style.fontWeight = 'bold';
-btn.style.cursor = 'grab'; // ড্র্যাগ করার জন্য হ্যান্ড আইকন
-btn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
-btn.style.fontFamily = 'Arial, sans-serif';
-btn.style.fontSize = '11px'; // ছোট ফন্ট সাইজ
-btn.style.opacity = '0.7'; // একটু স্বচ্ছ, যেন পেজের লেখা দেখা যায়
+btn.style.cursor = 'grab'; 
+btn.style.boxShadow = '0 2px 5px rgba(0,0,0,0.4)';
+btn.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+btn.style.fontSize = '11px'; 
+btn.style.opacity = '0.75';
+btn.style.userSelect = 'none';
 
 var isEnabled = localStorage.getItem('autoPasteEnabled') === 'true';
 
 function updateUI() {
-if (isEnabled) {
-btn.innerText = 'Paste: ON';
-btn.style.backgroundColor = '#28a745'; // সবুজ
-} else {
-btn.innerText = 'Paste: OFF';
-btn.style.backgroundColor = '#dc3545'; // লাল
+    if (isEnabled) {
+        btn.innerText = 'Paste: ON';
+        btn.style.backgroundColor = '#28a745';
+    } else {
+        btn.innerText = 'Paste: OFF';
+        btn.style.backgroundColor = '#dc3545';
+    }
 }
-}
-
 updateUI();
 document.body.appendChild(btn);
 
-// ড্র্যাগেবল করার জন্য ফাংশন
 var isDragging = false;
+var hasMoved = false;
 var offsetX, offsetY;
 
 btn.addEventListener('mousedown', function(e) {
-isDragging = true;
-offsetX = e.clientX - btn.getBoundingClientRect().left;
-offsetY = e.clientY - btn.getBoundingClientRect().top;
-btn.style.cursor = 'grabbing';
-btn.style.opacity = '1'; // ড্র্যাগ করার সময় পুরোপুরি দেখা যাবে
-btn.style.transition = 'none'; // ড্র্যাগিং স্মুথ করার জন্য ট্রানজিশন বন্ধ
+    isDragging = true;
+    hasMoved = false;
+    offsetX = e.clientX - btn.getBoundingClientRect().left;
+    offsetY = e.clientY - btn.getBoundingClientRect().top;
+    btn.style.cursor = 'grabbing';
+    btn.style.opacity = '1';
 });
 
 document.addEventListener('mousemove', function(e) {
-if (isDragging) {
-btn.style.left = (e.clientX - offsetX) + 'px';
-btn.style.top = (e.clientY - offsetY) + 'px';
-btn.style.right = 'auto'; // আগের রাইট পজিশন বাতিল
-}
+    if (isDragging) {
+        hasMoved = true;
+        btn.style.left = (e.clientX - offsetX) + 'px';
+        btn.style.top = (e.clientY - offsetY) + 'px';
+        btn.style.right = 'auto';
+    }
 });
 
 document.addEventListener('mouseup', function() {
-if (isDragging) {
-isDragging = false;
-btn.style.cursor = 'grab';
-btn.style.opacity = '0.7'; // ড্র্যাগ শেষ হলে আবার স্বচ্ছ হয়ে যাবে
-btn.style.transition = 'opacity 0.3s'; // ট্রানজিশন আবার চালু
-
-// নতুন পজিশন সেভ করে রাখা যেন রিফ্রেশ দিলেও সেখানেই থাকে
-localStorage.setItem('autoPasteBtnLeft', btn.style.left);
-localStorage.setItem('autoPasteBtnTop', btn.style.top);
-}
+    if (isDragging) {
+        isDragging = false;
+        btn.style.cursor = 'grab';
+        btn.style.opacity = '0.75';
+        localStorage.setItem('autoPasteBtnLeft', btn.style.left);
+        localStorage.setItem('autoPasteBtnTop', btn.style.top);
+    }
 });
 
-// পেজ লোড হলে আগের সেভ করা পজিশন সেট করা
-window.addEventListener('load', function() {
-var savedLeft = localStorage.getItem('autoPasteBtnLeft');
-var savedTop = localStorage.getItem('autoPasteBtnTop');
-if (savedLeft && savedTop) {
-btn.style.left = savedLeft;
-btn.style.top = savedTop;
-btn.style.right = 'auto';
-}
-});
-
-// অটো-পেস্টিং লজিক
+// অটো-পেস্টিং ও ক্লিপবোর্ড মোছার লজিক
 var autoPasteHandler = async function(e) {
-if (!isEnabled || isDragging) return; // ড্র্যাগ করার সময় যেন পেস্ট না হয়
-if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-try {
-// Clipboard API শুধুমাত্র সুরক্ষিত কন্টেনস্টে কাজ করে (HTTPS)
-const text = await navigator.clipboard.readText();
-if (text) {
-e.target.value = text;
-e.target.dispatchEvent(new Event('input', { bubbles: true }));
-e.target.dispatchEvent(new Event('change', { bubbles: true }));
-}
-} catch (err) {
-// Clipboard API ব্যবহারের জন্য প্রথমবার অনুমতি চাইতে পারে
-console.error('Failed to read from clipboard:', err);
-// বিকল্প পদ্ধতি
-// document.execCommand('paste'); // এটি সবসময় সব ব্রাউজারে কাজ নাও করতে পারে
-}
-}
-};
+    if (!isEnabled || isDragging || hasMoved) return;
+    
+    var target = e.target;
+    var isTextBox = target.tagName === 'TEXTAREA' || 
+                    (target.tagName === 'INPUT' && 
+                     target.type !== 'button' && 
+                     target.type !== 'submit' && 
+                     target.type !== 'image' && 
+                     target.type !== 'checkbox' && 
+                     target.type !== 'radio');
 
-// ক্লিক ইভেন্ট লিসেনার (ক্যাপচারিং মোড, যেন ইনপুট ফিল্ডের ওপরের লেয়ার হিসেবে কাজ করে)
+    if (isTextBox) {
+        try {
+            const text = await navigator.clipboard.readText();
+            // ক্লিপবোর্ড যদি খালি না থাকে তবেই পেস্ট হবে
+            if (text && text.trim() !== "") {
+                target.value = text;
+                target.dispatchEvent(new Event('input', { bubbles: true }));
+                target.dispatchEvent(new Event('change', { bubbles: true }));
+                
+                // ১ বার পেস্ট হওয়ার সাথে সাথেই ক্লিপবোর্ড ডিলিট/মুছে ফেলার কোড
+                await navigator.clipboard.writeText('');
+                console.log('Paste Done & Clipboard Cleared!');
+            }
+        } catch (err) {
+            console.error('Clipboard error:', err);
+        }
+    }
+};
 document.addEventListener('click', autoPasteHandler, true);
 
-// বাটনে ক্লিক করলে অন/অফ টগল হওয়া
 btn.addEventListener('click', function(e) {
-if (isDragging) return; // ড্র্যাগ করার সময় ক্লিক ইভেন্ট বন্ধ
-e.stopPropagation(); // বাটনে ক্লিক করলে যেন পেস্ট না হয়
-isEnabled = !isEnabled;
-localStorage.setItem('autoPasteEnabled', isEnabled);
-updateUI();
+    e.stopPropagation();
+    if (hasMoved) return;
+    isEnabled = !isEnabled;
+    localStorage.setItem('autoPasteEnabled', isEnabled);
+    updateUI();
 });
 })();

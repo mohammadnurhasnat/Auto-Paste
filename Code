@@ -9,7 +9,7 @@
 // @author       Gemini
 // @match        *://*/*
 // @grant        none
-// ==UserScript==
+// ==/UserScript==
 
 (function() {
 'use strict';
